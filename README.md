@@ -7,7 +7,7 @@
 具体可参考本人开发的另外一个插件 https://github.com/Lingyuzhou111/Comfyui_Free_Jimeng
 
 ### 获取sessionid方法
-1. 登录即梦AI网页版 (https://dreamina.capcut.com)
+1. 登录Dreamina AI网页版 (https://dreamina.capcut.com)
 2. 打开浏览器开发者工具（F12）
 3. 切换到"应用"或"Application"标签
 4. 在左侧找到"Cookies"
@@ -18,12 +18,3 @@
 - 检查config.json文件格式是否正确
 - 确认网络连接正常
 - 验证sessionid是否有效
-
-## 贡献指南
-
-欢迎提交问题报告和功能请求！如果你想贡献代码，请：
-
-## 许可证
-
-MIT License - 详见 [LICENSE](LICENSE) 文件
-
