@@ -1,5 +1,5 @@
 """
-即梦AI文/图生图合并节点
+Dreamina AI文/图生图合并节点
 ComfyUI插件的文生图和图生图功能合并为一个节点
 """
 
@@ -643,3 +643,4 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Dreamina_Image": "即梦AI图片生成"
 }
+
