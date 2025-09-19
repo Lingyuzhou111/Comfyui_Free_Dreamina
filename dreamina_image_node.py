@@ -43,7 +43,8 @@ def _load_config_for_class() -> Dict[str, Any]:
 class DreaminaImageNode:
     """
     即梦AI文/图生图合并节点
-    通过 reference_image 是否为空自动判断是文生图还是图生图
+    判断规则对齐 Jimeng：当 ref_image_1..6 中至少存在一张“有效参考图”时走图生图，否则走文生图。
+    有效参考图需满足：非 None、是 3 或 4 维张量（支持 batch 取第一张）、数值会被裁剪到 [0,1]。
     """
     def __init__(self):
         self.plugin_dir = os.path.dirname(os.path.abspath(__file__))
@@ -247,6 +248,22 @@ class DreaminaImageNode:
 
 
 
+    def _validate_image_tensor(self, t: torch.Tensor) -> bool:
+        """
+        校验参考图张量是否有效：
+        - 非 None
+        - torch.Tensor 类型
+        - 维度为 3 或 4（4 维时会取第一张）
+        """
+        try:
+            if t is None or not isinstance(t, torch.Tensor):
+                return False
+            if len(t.shape) not in (3, 4):
+                return False
+            return True
+        except Exception:
+            return False
+
     def _save_input_image(self, image_tensor: torch.Tensor) -> str:
         """
         将输入的图像张量保存为临时文件。
@@ -321,9 +338,22 @@ class DreaminaImageNode:
                 
             self.token_manager.switch_to_account(account_index)
             
-            # 收集参考图（最多6张）
-            ref_images = [ri for ri in [ref_image_1, ref_image_2, ref_image_3, ref_image_4, ref_image_5, ref_image_6] if ri is not None]
+            # 收集参考图（最多6张），并做有效性过滤（对齐 Jimeng 逻辑）
+            raw_refs = [ref_image_1, ref_image_2, ref_image_3, ref_image_4, ref_image_5, ref_image_6]
+            valid_refs = []
+            invalid_count = 0
+            for i, ri in enumerate(raw_refs, start=1):
+                if ri is None:
+                    continue
+                if self._validate_image_tensor(ri):
+                    valid_refs.append(ri)
+                else:
+                    invalid_count += 1
+            if invalid_count > 0:
+                logger.warning(f"[DreaminaNode] 有 {invalid_count} 张参考图无效，已忽略")
+            ref_images = valid_refs
             is_image2image = len(ref_images) > 0
+            logger.info(f"[DreaminaNode] 判定生成类型：{'图生图(I2I)' if is_image2image else '文生图(T2I)'}；有效参考图数量: {len(ref_images)}")
 
             # 获取当前积分信息
             logger.info(f"[DreaminaNode] 🔍 正在获取账号积分信息...")
