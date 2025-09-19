@@ -1,0 +1,2 @@
+# Comfyui_Free_Dreamina
+这个插件为ComfyUI提供了Dreamina(即梦国际版)的文生图和图生图功能，让你可以在ComfyUI工作流中使用Dreamina的强大生成能力。
