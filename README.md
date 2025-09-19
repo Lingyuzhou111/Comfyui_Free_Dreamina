@@ -3,7 +3,8 @@
 这个插件为ComfyUI提供了Dreamina(即梦国际版)的文生图和图生图功能，让你可以在ComfyUI工作流中使用Dreamina的强大生成能力。
 注意：使用该插件需要切换至特殊的网络环境。
 
-## 技术支持
+##**安装及使用方法**
+具体可参考本人开发的另外一个插件 https://github.com/Lingyuzhou111/Comfyui_Free_Jimeng
 
 ### 获取sessionid方法
 1. 登录即梦AI网页版 (https://dreamina.capcut.com)
