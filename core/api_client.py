@@ -362,6 +362,9 @@ class ApiClient:
                     # 若网页端拒绝（如 fail_code=1180），立即结束
                     if isinstance(res, dict) and res.get("blocked"):
                         return self._create_error_result(f"网页端拒绝生成: fail_code={res.get('fail_code')}, msg={res.get('fail_msg')}")
+                    # 若接口返回失败（如 fail_code=1000 等），立即结束
+                    if isinstance(res, dict) and res.get("failed"):
+                        return self._create_error_result(f"网页端返回失败: fail_code={res.get('fail_code')}, msg={res.get('fail_msg')}")
                     if isinstance(res, list) and res:
                         urls_to_download = res
                         images = self._download_images(urls_to_download)
@@ -410,6 +413,9 @@ class ApiClient:
                     # 若网页端拒绝（如 fail_code=1180），立即结束
                     if isinstance(res, dict) and res.get("blocked"):
                         return self._create_error_result(f"网页端拒绝生成: fail_code={res.get('fail_code')}, msg={res.get('fail_msg')}")
+                    # 若接口返回失败（如 fail_code=1000 等），立即结束
+                    if isinstance(res, dict) and res.get("failed"):
+                        return self._create_error_result(f"网页端返回失败: fail_code={res.get('fail_code')}, msg={res.get('fail_msg')}")
                     if isinstance(res, list) and res:
                         logger.info(f"[Dreamina] ✅ 图片生成完成，获取到{len(res)}张图片")
                         urls_to_download = res
@@ -1354,7 +1360,7 @@ class ApiClient:
                 logger.error(f"[Dreamina] ❌ 任务失败:")
                 logger.error(f"[Dreamina]   - 失败代码: {fail_code}")
                 logger.error(f"[Dreamina]   - 失败信息: {fail_starling_message}")
-                return None
+                return {"failed": True, "fail_code": str(fail_code), "fail_msg": fail_starling_message}
             
             # 状态码50表示任务成功完成
             if task_status == 50:
@@ -1466,7 +1472,7 @@ class ApiClient:
                 # 特殊处理：1180 表示网页端拒绝，直接通知上层停止轮询
                 if str(fail_code) == "1180":
                     return {"blocked": True, "fail_code": str(fail_code), "fail_msg": fail_msg}
-                return None
+                return {"failed": True, "fail_code": str(fail_code), "fail_msg": fail_msg}
                 
             status = history_data.get("status")
             
