@@ -104,14 +104,26 @@ class DreaminaImageNode:
         config = _load_config_for_class()
         params = config.get("params", {})
         models = params.get("models", {})
-        ratios = params.get("ratios", {})
+        # 支持 1k/2k/4k 三组分辨率比例映射，与 Jimeng 节点对齐
+        ratios_1k = params.get("1k_ratios", {})
+        ratios_2k = params.get("2k_ratios", {})
+        ratios_4k = params.get("4k_ratios", {})
         accounts = config.get("accounts", [])
         
-        defaults = {"model": params.get("default_model", "3.0"), "ratio": params.get("default_ratio", "1:1")}
-        model_options = list(models.keys())
-        ratio_options = list(ratios.keys())
-        if not model_options: model_options = ["-"]
-        if not ratio_options: ratio_options = ["-"]
+        defaults = {
+            "model": params.get("default_model", "3.0"),
+            "resolution": "2k",
+            "ratio": params.get("default_ratio", "1:1")
+        }
+        model_options = list(models.keys()) or ["-"]
+        # 比例下拉使用三组比例键的并集，避免依赖当前 params.ratios
+        ratio_keys = set()
+        if isinstance(ratios_1k, dict): ratio_keys.update(ratios_1k.keys())
+        if isinstance(ratios_2k, dict): ratio_keys.update(ratios_2k.keys())
+        if isinstance(ratios_4k, dict): ratio_keys.update(ratios_4k.keys())
+        ratio_options = list(ratio_keys) or ["-"]
+        ratio_options.sort()
+        resolution_options = ["1k", "2k", "4k"]
         
         # 生成账号选择选项
         account_options = []
@@ -127,6 +139,7 @@ class DreaminaImageNode:
                 "prompt": ("STRING", {"multiline": True, "default": "一只可爱的小猫咪"}),
                 "account": (account_options, {"default": account_options[0] if account_options else "无可用账号"}),
                 "model": (model_options, {"default": defaults["model"]}),
+                "resolution": (resolution_options, {"default": defaults["resolution"]}),
                 "ratio": (ratio_options, {"default": defaults["ratio"]}),
                 "seed": ("INT", {"default": -1, "min": -1, "max": 0xffffffffffffffff}),
             },
@@ -311,7 +324,7 @@ class DreaminaImageNode:
             logger.error(f"[DreaminaNode] 查找账号索引时出错: {e}")
             return None
 
-    def generate_images(self, prompt: str, model: str, ratio: str, account: str, seed: int, num_images: int = 4, 
+    def generate_images(self, prompt: str, model: str, resolution: str, ratio: str, account: str, seed: int, num_images: int = 4, 
                         ref_image_1: torch.Tensor = None, ref_image_2: torch.Tensor = None, ref_image_3: torch.Tensor = None, 
                         ref_image_4: torch.Tensor = None, ref_image_5: torch.Tensor = None, ref_image_6: torch.Tensor = None) -> Tuple[torch.Tensor, str, str, str]:
         """
@@ -354,6 +367,30 @@ class DreaminaImageNode:
             ref_images = valid_refs
             is_image2image = len(ref_images) > 0
             logger.info(f"[DreaminaNode] 判定生成类型：{'图生图(I2I)' if is_image2image else '文生图(T2I)'}；有效参考图数量: {len(ref_images)}")
+            # 按用户选择的分辨率切换分辨率映射（对文生图/图生图通用）
+            try:
+                params_cfg = self.config.get("params", {})
+                ratios_1k = params_cfg.get("1k_ratios", {})
+                ratios_2k = params_cfg.get("2k_ratios", {})
+                ratios_4k = params_cfg.get("4k_ratios", {})
+                key_map = {"1k": ratios_1k, "2k": ratios_2k, "4k": ratios_4k}
+                selected = key_map.get(str(resolution).strip(), ratios_2k)
+                if isinstance(selected, dict) and selected:
+                    params_cfg["ratios"] = dict(selected)
+                    # 同步记录分辨率类型，供 ApiClient.large_image_info.resolution_type 使用
+                    if selected is ratios_1k:
+                        params_cfg["resolution_type"] = "1k"
+                    elif selected is ratios_2k:
+                        params_cfg["resolution_type"] = "2k"
+                    else:
+                        params_cfg["resolution_type"] = "4k"
+                    self.config["params"] = params_cfg
+                    selected_group = "1k_ratios" if selected is ratios_1k else ("2k_ratios" if selected is ratios_2k else "4k_ratios")
+                    logger.info(f"[DreaminaNode] 已切换分辨率组为: {selected_group}")
+                else:
+                    logger.warning("[DreaminaNode] 未找到匹配的分辨率映射，将使用现有 ratios。")
+            except Exception as e:
+                logger.warning(f"[DreaminaNode] 切换分辨率映射时出错: {e}")
 
             # 获取当前积分信息
             logger.info(f"[DreaminaNode] 🔍 正在获取账号积分信息...")
@@ -453,6 +490,7 @@ class DreaminaImageNode:
             logger.info(f"[DreaminaNode] 🚀 开始{'图生图' if is_image2image else '文生图'}处理...")
             logger.debug(f"[DreaminaNode] 📝 提示词: {prompt[:50]}...")
             logger.debug(f"[DreaminaNode] 🎨 模型: {model}")
+            logger.debug(f"[DreaminaNode] 🖼️ 分辨率: {resolution}")
             logger.debug(f"[DreaminaNode] 📐 比例: {ratio}")
             logger.debug(f"[DreaminaNode] 🎲 种子: {seed}")
             logger.debug(f"[DreaminaNode] 🔢 数量: {num_images}")
@@ -641,5 +679,5 @@ NODE_CLASS_MAPPINGS = {
     "Dreamina_Image": DreaminaImageNode
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Dreamina_Image": "即梦AI图片生成"
+    "Dreamina_Image": "Dreamina AI图片生成"
 }
