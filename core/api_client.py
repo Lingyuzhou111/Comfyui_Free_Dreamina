@@ -217,9 +217,9 @@ class ApiClient:
                                     "id": str(uuid.uuid4()),
                                     "height": height,
                                     "width": width,
-                                    "resolution_type": "1k"
+                                    "resolution_type": self.config.get("params", {}).get("resolution_type", "2k")
                                 },
-                                "intelligent_ratio": True
+                                "intelligent_ratio": False
                             }
                         }
                     }
@@ -363,14 +363,14 @@ class ApiClient:
                     if isinstance(res, dict) and res.get("blocked"):
                         return self._create_error_result(f"网页端拒绝生成: fail_code={res.get('fail_code')}, msg={res.get('fail_msg')}")
                     if isinstance(res, list) and res:
-                        urls_to_download = res[:num_images]
+                        urls_to_download = res
                         images = self._download_images(urls_to_download)
                         if not images:
                             return self._create_error_result("下载图片失败，可能链接已失效。")
                         
                         image_batch = torch.cat(images, dim=0)
                         generation_info = self._generate_info_text(prompt, model, ratio, len(images))
-                        image_urls_text = "\n\n".join(urls_to_download)
+                        image_urls_text = "\n".join(urls_to_download)
                         
                         # 清理临时文件
                         try:
@@ -412,14 +412,14 @@ class ApiClient:
                         return self._create_error_result(f"网页端拒绝生成: fail_code={res.get('fail_code')}, msg={res.get('fail_msg')}")
                     if isinstance(res, list) and res:
                         logger.info(f"[Dreamina] ✅ 图片生成完成，获取到{len(res)}张图片")
-                        urls_to_download = res[:num_images]
+                        urls_to_download = res
                         images = self._download_images(urls_to_download)
                         if not images:
                             return self._create_error_result("下载图片失败，可能链接已失效。")
                         
                         image_batch = torch.cat(images, dim=0)
                         generation_info = self._generate_info_text(prompt, model, ratio, len(images))
-                        image_urls_text = "\n\n".join(urls_to_download)
+                        image_urls_text = "\n".join(urls_to_download)
                         
                         # 清理临时文件
                         try:
@@ -435,14 +435,14 @@ class ApiClient:
             if not urls:
                 return self._create_error_result("API未返回图片URL。")
             
-            urls_to_download = urls[:num_images]
+            urls_to_download = urls
             images = self._download_images(urls_to_download)
             if not images:
                 return self._create_error_result("下载图片失败，可能链接已失效。")
             
             image_batch = torch.cat(images, dim=0)
             generation_info = self._generate_info_text(prompt, model, ratio, len(images))
-            image_urls = "\n\n".join(urls_to_download)
+            image_urls = "\n".join(urls_to_download)
 
             # 清理临时文件
             try:
@@ -486,7 +486,7 @@ class ApiClient:
         }
         
         ratio_type = fallback_map.get(ratio, 1)
-        logger.warning(f"[Dreamina] 配置中未找到比例{ratio}，使用备用映射: ratio_type={ratio_type}")
+        logger.debug(f"[Dreamina] 配置中未找到比例{ratio}，使用备用映射: ratio_type={ratio_type}")
         return ratio_type
 
     def _get_ratio_dimensions(self, ratio):
@@ -945,9 +945,9 @@ class ApiClient:
                                     "id": str(uuid.uuid4()),
                                     "height": height,
                                     "width": width,
-                                    "resolution_type": "1k"
+                                    "resolution_type": self.config.get("params", {}).get("resolution_type", "2k")
                                 },
-                                "intelligent_ratio": True
+                                "intelligent_ratio": False
                             },
                             "ability_list": [{
                                 "type": "",
@@ -1211,9 +1211,9 @@ class ApiClient:
                                     "id": str(uuid.uuid4()),
                                     "height": height,
                                     "width": width,
-                                    "resolution_type": "1k"
+                                    "resolution_type": self.config.get("params", {}).get("resolution_type", "2k")
                                 },
-                                "intelligent_ratio": True
+                                "intelligent_ratio": False
                             },
                             "ability_list": [{
                                 "type": "",
