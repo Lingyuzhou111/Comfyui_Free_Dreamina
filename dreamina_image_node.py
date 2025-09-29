@@ -643,4 +643,3 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Dreamina_Image": "即梦AI图片生成"
 }
-
