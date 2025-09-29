@@ -1,6 +1,6 @@
 {
     "description": "Dreamina AI ComfyUI插件配置文件",
-    "version": "1.0.0",
+    "version": "2.0.0",
     
     "accounts": [
         {
@@ -53,14 +53,32 @@
     },
     
     "params": {
-        "ratios": {
-            "1:1": {"width": 1328, "height": 1328, "ratio_type": 1},
-            "2:3": {"width": 1056, "height": 1584, "ratio_type": 6},
-            "3:4": {"width": 1104, "height": 1472, "ratio_type": 2},
-            "4:3": {"width": 1472, "height": 1104, "ratio_type": 4},
-            "3:2": {"width": 1584, "height": 1056, "ratio_type": 7},
-            "16:9": {"width": 1664, "height": 936, "ratio_type": 3},
-            "9:16": {"width": 936, "height": 1664, "ratio_type": 5}
+        "1k_ratios": {
+            "1:1": {"width": 1328, "height": 1328},
+            "2:3": {"width": 1056, "height": 1584},
+            "3:4": {"width": 1104, "height": 1472},
+            "4:3": {"width": 1472, "height": 1104},
+            "3:2": {"width": 1584, "height": 1056},
+            "16:9": {"width": 1664, "height": 936},
+            "9:16": {"width": 936, "height": 1664}
+        },
+        "2k_ratios": {
+            "1:1": {"width": 2048, "height": 2048},
+            "2:3": {"width": 1664, "height": 2496},
+            "3:4": {"width": 1728, "height": 2304},
+            "4:3": {"width": 2304, "height": 1728},
+            "3:2": {"width": 2496, "height": 1664},
+            "16:9": {"width": 2560, "height": 1440},
+            "9:16": {"width": 1440, "height": 2560}
+        },
+        "4k_ratios": {
+            "1:1": {"width": 4096, "height": 4096},
+            "2:3": {"width": 3328, "height": 4992},
+            "3:4": {"width": 3520, "height": 4693},
+            "4:3": {"width": 4693, "height": 3520},
+            "3:2": {"width": 4992, "height": 3328},
+            "16:9": {"width": 5404, "height": 3040},
+            "9:16": {"width": 3040, "height": 5404}
         },
         "default_ratio": "1:1",
         "models": {
@@ -134,3 +152,4 @@
     }
 
 }
+
