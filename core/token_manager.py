@@ -4,6 +4,7 @@ import os
 import random
 import hashlib
 import time
+import secrets
 from typing import Dict, Any, Optional, List
 import logging
 import datetime
@@ -17,9 +18,9 @@ class TokenManager:
         self.current_account_index = 0
         self.version_code = "5.8.0"
         self.platform_code = "7"
-        self.device_id = str(random.random() * 999999999999999999 + 7000000000000000000)
-        self.web_id = str(random.random() * 999999999999999999 + 7000000000000000000)
-        self.user_id = str(random.random() * 999999999999999999 + 7000000000000000000) # Changed to generate a random user_id
+        self.device_id = self._generate_web_id()
+        self.web_id = self._generate_web_id()
+        self.user_id = self._generate_web_id()
         
         logger.info(f"[Dreamina] Initialized with {len(self.accounts)} accounts")
         
@@ -66,6 +67,10 @@ class TokenManager:
         if not self.web_id:
             self.web_id = self._generate_web_id()
         return self.web_id
+        
+    def get_device_id(self):
+        """获取did（设备ID）"""
+        return self.device_id
         
     def get_current_account(self):
         """获取当前账号"""
@@ -129,20 +134,21 @@ class TokenManager:
             # 生成新的sign
             sign = self._generate_sign(api_path, timestamp)
             
-            # 生成新的a_bogus
+            # 生成新的a_bogus 与 X-Gnarly
             a_bogus = self._generate_a_bogus(api_path, timestamp)
+            x_gnarly = self._generate_x_gnarly()
             
             # 生成新的cookie
             cookie = self._generate_cookie(account)
-            
-
             
             return {
                 "cookie": cookie,
                 "msToken": msToken,
                 "sign": sign,
                 "a_bogus": a_bogus,
-                "device_time": timestamp
+                "x_gnarly": x_gnarly,
+                "device_time": timestamp,
+                "device_id": self.device_id
             }
             
         except Exception as e:
@@ -181,6 +187,11 @@ class TokenManager:
         # 生成32位随机字符串
         chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
         return ''.join(random.choice(chars) for _ in range(32))
+        
+    def _generate_x_gnarly(self):
+        """生成 X-Gnarly 参数"""
+        # 使用更长的URL安全随机串，兼容新版接口校验
+        return secrets.token_urlsafe(32)
         
     def _generate_cookie(self, account):
         """生成完整的cookie
