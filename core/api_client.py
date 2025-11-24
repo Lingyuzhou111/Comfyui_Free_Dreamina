@@ -26,32 +26,38 @@ class ApiClient:
         self.token_manager = token_manager
         self.config = config
         self.temp_files = []
-        self.base_url = "https://mweb-api-sg.capcut.com"  # 改回正确的域名
-        self.aid = "513641"  # 修改为成功的aid
+        self.base_url = "https://dreamina-api.us.capcut.com"
+        self.aid = "513641"
         self.app_version = "5.8.0"
+        self.web_version = self.config.get("params", {}).get("web_version", "7.5.0")
+        self.da_version = self.config.get("params", {}).get("da_version", "3.3.3")
+        self.web_component_flag = "1"
+        self.origin = "https://dreamina.capcut.com"
 
-    def _get_headers(self, uri="/"):
+    def _get_headers(self, uri="/", token_info=None):
         """获取请求头"""
-        token_info = self.token_manager.get_token(uri)
+        token_info = token_info or self.token_manager.get_token(uri)
         if not token_info:
             return {}
-            
+
+        device_id = token_info.get("device_id") or self.token_manager.get_device_id()
+
         headers = {
             'accept': 'application/json, text/plain, */*',
-            'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+            'accept-language': 'zh-CN,zh;q=0.9',
             'app-sdk-version': '48.0.0',
             'appid': '513641',
-            'appvr': '5.8.0',
+            'appvr': self.app_version,
             'content-type': 'application/json',
             'cookie': token_info["cookie"],
             'device-time': token_info["device_time"],
             'lan': 'en',
             'loc': 'US',
-            'origin': 'https://dreamina.capcut.com',
+            'origin': self.origin,
             'pf': '7',
             'priority': 'u=1, i',
-            'referer': 'https://dreamina.capcut.com/',
-            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Microsoft Edge";v="138"',
+            'referer': f'{self.origin}/',
+            'sec-ch-ua': '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Windows"',
             'sec-fetch-dest': 'empty',
@@ -59,19 +65,30 @@ class ApiClient:
             'sec-fetch-site': 'same-site',
             'sign': token_info["sign"],
             'sign-ver': '1',
+            'store-country-code': 'us',
+            'store-country-code-src': 'uid',
             'tdid': 'web',
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
+            'did': device_id,
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'
         }
+
+        if token_info.get("msToken"):
+            headers['msToken'] = token_info['msToken']
+        if token_info.get("a_bogus"):
+            headers['x-bogus'] = token_info['a_bogus']
+        if token_info.get("x_gnarly"):
+            headers['x-gnarly'] = token_info['x_gnarly']
+
         return headers
 
-    def _send_request(self, method, url, **kwargs):
+    def _send_request(self, method, url, token_info=None, **kwargs):
         """发送HTTP请求"""
         try:
             # 获取URI
             uri = url.split(self.base_url)[-1].split('?')[0]
             
             # 获取headers
-            headers = self._get_headers(uri)
+            headers = self._get_headers(uri, token_info)
             
             # 如果kwargs中有headers，合并它们
             if 'headers' in kwargs:
@@ -120,6 +137,28 @@ class ApiClient:
             logger.error(f"[Dreamina] ❌ 请求处理异常: {e}")
             return None
 
+    def _build_common_params(self, token_info=None, extra_params=None):
+        """拼装新版通用查询参数"""
+        params = {
+            "aid": self.aid,
+            "device_platform": "web",
+            "region": "US",
+            "da_version": self.da_version,
+            "web_version": self.web_version,
+            "aigc_features": "app_lip_sync",
+            "web_component_open_flag": self.web_component_flag
+        }
+        if token_info:
+            if token_info.get("msToken"):
+                params["msToken"] = token_info["msToken"]
+            if token_info.get("a_bogus"):
+                params["X-Bogus"] = token_info["a_bogus"]
+            if token_info.get("x_gnarly"):
+                params["X-Gnarly"] = token_info["x_gnarly"]
+        if extra_params:
+            params.update(extra_params)
+        return params
+
     def generate_t2i(self, prompt: str, model: str, ratio: str, seed: int = -1):
         """处理文生图请求 - 更新为最新API格式
         Args:
@@ -149,7 +188,8 @@ class ApiClient:
             submit_id = str(uuid.uuid4())
             
             # 准备请求数据 - 使用最新API格式
-            url = f"{self.base_url}/mweb/v1/aigc_draft/generate"
+            endpoint = "/mweb/v1/aigc_draft/generate"
+            url = f"{self.base_url}{endpoint}"
             
             # 获取模型配置
             model_configs = self.config.get("params", {}).get("models", {})
@@ -255,22 +295,14 @@ class ApiClient:
                 }
             }
             
-            # 构建请求参数
-            params = {
-                "aid": self.aid,
-                "device_platform": "web", 
-                "region": "US",
-                "da_version": "3.3.0",
-                "web_version": "6.6.0",
-                "aigc_features": "app_lip_sync",
-                "web_component_open_flag": "1"
-            }
+            token_info = self.token_manager.get_token(endpoint)
+            params = self._build_common_params(token_info)
             
             logger.info(f"[Dreamina] 🎨 开始文生图请求...")
             logger.debug(f"[Dreamina]   - 提交ID: {submit_id}")
             
             # 发送生成请求
-            response = self._send_request("POST", url, params=params, json=data)
+            response = self._send_request("POST", url, token_info=token_info, params=params, json=data)
             
             if not response or response.get("ret") != "0":
                 logger.error(f"[Dreamina] ❌ 文生图请求失败")
@@ -540,66 +572,38 @@ class ApiClient:
         return model
 
     def _get_upload_token(self):
-        """获取上传token - 使用最新的API端点"""
+        """获取上传token - 适配新版北美域名"""
         try:
-            # 使用正确的API端点
-            url = "https://mweb-api-sg.capcut.com/artist/v2/tools/get_upload_token"
-            
-            # 获取token信息
-            token_info = self.token_manager.get_token("/artist/v2/tools/get_upload_token")
+            endpoint = "/mweb/v1/get_upload_token"
+            token_info = self.token_manager.get_token(endpoint)
             if not token_info:
                 logger.error("[Dreamina] 无法获取token信息")
                 return None
-            
-            headers = {
-                'accept': 'application/json, text/plain, */*',
-                'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-                'appvr': '',
-                'content-type': 'application/json',
-                'cookie': token_info["cookie"],
-                'device-time': token_info["device_time"],
-                'lan': 'zh-hans',
-                'origin': 'https://dreamina.capcut.com',
-                'pf': '1',
-                'priority': 'u=1, i',
-                'referer': 'https://dreamina.capcut.com/',
-                'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Microsoft Edge";v="138"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"Windows"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-site',
-                'sign': token_info["sign"],
-                'sign-ver': '1',
-                'tdid': 'web',
-                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36'
-            }
-            
-            # 准备POST请求体
-            data = {
-                "scene": 2
-            }
-            
+
+            params = self._build_common_params(token_info)
+            url = f"{self.base_url}{endpoint}"
+
             logger.info("[Dreamina] 🔍 正在获取上传token...")
-            response = requests.post(url, headers=headers, json=data, timeout=30)
-            
-            if response.status_code != 200:
-                logger.error(f"[Dreamina] 获取上传token失败，HTTP状态码: {response.status_code}")
+            response = self._send_request(
+                "POST",
+                url,
+                token_info=token_info,
+                params=params,
+                json={"scene": 2}
+            )
+
+            if not response or response.get("ret") != "0":
+                logger.error(f"[Dreamina] 获取上传token失败: {response}")
                 return None
-            
-            result = response.json()
-            if result.get("ret") != "0":
-                logger.error(f"[Dreamina] 获取上传token失败: {result}")
-                return None
-                
-            upload_data = result.get("data", {})
+
+            upload_data = response.get("data", {})
             if not upload_data:
                 logger.error("[Dreamina] 上传token响应数据为空")
                 return None
-            
+
             logger.info("[Dreamina] ✅ 上传token获取成功")
             return upload_data
-            
+
         except Exception as e:
             logger.error(f"[Dreamina] 获取上传token时发生异常: {e}")
             return None
@@ -616,6 +620,14 @@ class ApiClient:
             # 获取文件大小
             file_size = os.path.getsize(image_path)
             
+            service_id = upload_token.get('space_name')
+            upload_domain = (upload_token.get('upload_domain') or 'imagex-normal-sg.capcutapi.com').replace('https://', '').replace('http://', '')
+            region = upload_token.get('region', 'ap-singapore-1')
+
+            if not service_id or not upload_domain:
+                logger.error("[Dreamina] 上传token缺少上传域名或空间信息")
+                return None
+            
             # 第一步：申请图片上传，获取上传地址
             t = datetime.datetime.utcnow()
             amz_date = t.strftime('%Y%m%dT%H%M%SZ')
@@ -624,9 +636,8 @@ class ApiClient:
             request_parameters = {
                 'Action': 'ApplyImageUpload',
                 'Version': '2018-08-01',
-                'ServiceId': upload_token.get('space_name', 'fhsjxsyzit'),
+                'ServiceId': service_id,
                 'FileSize': str(file_size),
-                's': 'c8nxnei2ek',
                 'device_platform': 'web'
             }
             
@@ -636,7 +647,7 @@ class ApiClient:
             # 构建规范请求
             canonical_uri = '/'
             canonical_headers = (
-                f'host:imagex-normal-sg.capcutapi.com\n'
+                f'host:{upload_domain}\n'
                 f'x-amz-date:{amz_date}\n'
                 f'x-amz-security-token:{upload_token.get("session_token", "")}\n'
             )
@@ -659,7 +670,7 @@ class ApiClient:
             authorization = self.get_authorization(
                 upload_token.get('access_key_id', ''),
                 upload_token.get('secret_access_key', ''),
-                'ap-singapore-1',  # 使用正确的区域
+                region,
                 'imagex',
                 amz_date,
                 upload_token.get('session_token', ''),
@@ -672,10 +683,10 @@ class ApiClient:
                 'Authorization': authorization,
                 'X-Amz-Date': amz_date,
                 'X-Amz-Security-Token': upload_token.get('session_token', ''),
-                'Host': 'imagex-normal-sg.capcutapi.com'
+                'Host': upload_domain
             }
             
-            url = f'https://imagex-normal-sg.capcutapi.com/?{canonical_querystring}'
+            url = f'https://{upload_domain}/?{canonical_querystring}'
             
             response = requests.get(url, headers=headers)
             if response.status_code != 200:
@@ -704,8 +715,8 @@ class ApiClient:
                 'content-type': 'application/octet-stream',
                 'content-disposition': 'attachment; filename="undefined"',
                 'content-crc32': crc32,
-                'origin': 'https://mweb-api-sg.capcut.com',
-                'referer': 'https://mweb-api-sg.capcut.com/'
+                'origin': self.origin,
+                'referer': f'{self.origin}/'
             }
             
             response = requests.post(url, headers=headers, data=content)
@@ -727,7 +738,7 @@ class ApiClient:
             params = {
                 "Action": "CommitImageUpload",
                 "Version": "2018-08-01",
-                "ServiceId": upload_token.get('space_name', 'fhsjxsyzit')
+                "ServiceId": service_id
             }
             
             data = {
@@ -741,14 +752,17 @@ class ApiClient:
             canonical_uri = "/"
             canonical_querystring = "&".join([f"{k}={v}" for k, v in sorted(params.items())])
             signed_headers = "x-amz-content-sha256;x-amz-date;x-amz-security-token"
-            canonical_headers = f"x-amz-content-sha256:{content_sha256}\nx-amz-date:{amz_date}\nx-amz-security-token:{upload_token.get('session_token', '')}\n"
-            
+            canonical_headers = (
+                f'x-amz-content-sha256:{content_sha256}\n'
+                f'x-amz-date:{amz_date}\n'
+                f'x-amz-security-token:{upload_token.get('session_token', '')}\n'
+            )
             canonical_request = f"POST\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{content_sha256}"
             
             authorization = self.get_authorization(
                 upload_token.get('access_key_id', ''),
                 upload_token.get('secret_access_key', ''),
-                'ap-singapore-1',  # 使用正确的区域
+                region,
                 'imagex',
                 amz_date,
                 upload_token.get('session_token', ''),
@@ -763,11 +777,11 @@ class ApiClient:
                 'x-amz-content-sha256': content_sha256,
                 'x-amz-date': amz_date,
                 'x-amz-security-token': upload_token.get('session_token', ''),
-                'origin': 'https://dreamina.capcut.com',
-                'referer': 'https://dreamina.capcut.com/'
+                'origin': self.origin,
+                'referer': f'{self.origin}/'
             }
             
-            commit_url = "https://imagex-normal-sg.capcutapi.com"
+            commit_url = f"https://{upload_domain}"
             response = requests.post(f"{commit_url}?{canonical_querystring}", headers=headers, data=payload)
             if response.status_code != 200:
                 logger.error(f"[Dreamina] Failed to commit upload: {response.text}")
@@ -788,8 +802,9 @@ class ApiClient:
     def _verify_uploaded_image(self, image_uri):
         """验证上传的图片"""
         try:
-            url = f"{self.base_url}/mweb/v1/algo_proxy"
-            params = {
+            endpoint = "/mweb/v1/algo_proxy"
+            url = f"{self.base_url}{endpoint}"
+            base_params = {
                 "babi_param": json.dumps({
                     "scenario": "image_video_generation",
                     "feature_key": "aigc_to_image",
@@ -798,12 +813,12 @@ class ApiClient:
                 }),
                 "needCache": "true",
                 "cacheErrorCodes[]": "2203",
-                "aid": self.aid,
-                "device_platform": "web",
-                "region": "HK",
                 "web_id": self.token_manager.get_web_id(),
+                "region": "HK",
                 "da_version": "3.1.5"
             }
+            token_info = self.token_manager.get_token(endpoint)
+            params = self._build_common_params(token_info, base_params)
             
             data = {
                 "scene": "image_face_ip",
@@ -813,7 +828,7 @@ class ApiClient:
                 "req_params": {}
             }
             
-            response = self._send_request("POST", url, params=params, json=data)
+            response = self._send_request("POST", url, token_info=token_info, params=params, json=data)
             return response and response.get("ret") == "0"
             
         except Exception as e:
@@ -823,8 +838,9 @@ class ApiClient:
     def _get_image_description(self, image_uri):
         """获取图片描述"""
         try:
-            url = f"{self.base_url}/mweb/v1/get_image_description"
-            params = {
+            endpoint = "/mweb/v1/get_image_description"
+            url = f"{self.base_url}{endpoint}"
+            base_params = {
                 "babi_param": json.dumps({
                     "scenario": "image_video_generation",
                     "feature_key": "aigc_to_image",
@@ -832,23 +848,23 @@ class ApiClient:
                     "feature_entrance_detail": "to_image-get_image_description"
                 }),
                 "needCache": "false",
-                "aid": self.aid,
-                "device_platform": "web",
-                "region": "HK",
                 "web_id": self.token_manager.get_web_id(),
+                "region": "HK",
                 "da_version": "3.1.5"
             }
-            
+            token_info = self.token_manager.get_token(endpoint)
+            params = self._build_common_params(token_info, base_params)
+
             data = {
                 "file_uri": image_uri
             }
-            
-            response = self._send_request("POST", url, params=params, json=data)
+
+            response = self._send_request("POST", url, token_info=token_info, params=params, json=data)
             if response and response.get("ret") == "0":
                 return response.get("data", {}).get("description", "")
-            
+
             return ""
-            
+
         except Exception as e:
             logger.error(f"[Dreamina] Error getting image description: {e}")
             return ""
@@ -1002,7 +1018,8 @@ class ApiClient:
             logger.debug(f"[Dreamina] - large_image_info: {width}x{height}")
             
             # 准备请求数据 - 使用最新的API格式
-            url = f"{self.base_url}/mweb/v1/aigc_draft/generate"
+            endpoint = "/mweb/v1/aigc_draft/generate"
+            url = f"{self.base_url}{endpoint}"
             
             # 构建metrics_extra数据
             metrics_extra = {
@@ -1025,15 +1042,8 @@ class ApiClient:
                 }
             }
             
-            params = {
-                "aid": self.aid,
-                "device_platform": "web",
-                "region": "US",
-                "da_version": "3.3.0",
-                "web_version": "6.6.0",
-                "aigc_features": "app_lip_sync",
-                "web_component_open_flag": "1"
-            }
+            token_info = self.token_manager.get_token(endpoint)
+            params = self._build_common_params(token_info)
             
             # 添加调试日志
             logger.info(f"[Dreamina] 发送图生图请求:")
@@ -1050,12 +1060,12 @@ class ApiClient:
             logger.debug(f"[Dreamina] Data: {json.dumps(data, indent=2, ensure_ascii=False)}")
             
             # 添加请求头调试日志
-            headers = self._get_headers("/mweb/v1/aigc_draft/generate")
+            headers = self._get_headers(endpoint, token_info)
             logger.debug(f"[Dreamina] 请求头:")
             logger.debug(f"[Dreamina] Headers: {json.dumps(headers, indent=2, ensure_ascii=False)}")
             
             # 发送生成请求
-            response = self._send_request("POST", url, params=params, json=data)
+            response = self._send_request("POST", url, token_info=token_info, params=params, json=data)
             
             if not response or response.get("ret") != "0":
                 logger.error(f"[Dreamina] Failed to generate image with reference: {response}")
@@ -1248,7 +1258,8 @@ class ApiClient:
                 }]
             }
 
-            url = f"{self.base_url}/mweb/v1/aigc_draft/generate"
+            endpoint = "/mweb/v1/aigc_draft/generate"
+            url = f"{self.base_url}{endpoint}"
             metrics_extra = {
                 "promptSource": "custom",
                 "generateCount": 1,
@@ -1263,18 +1274,11 @@ class ApiClient:
                 "draft_content": json.dumps(draft_content, ensure_ascii=False),
                 "http_common_info": {"aid": int(self.aid)}
             }
-            params = {
-                "aid": self.aid,
-                "device_platform": "web",
-                "region": "US",
-                "da_version": "3.3.0",
-                "web_version": "6.6.0",
-                "aigc_features": "app_lip_sync",
-                "web_component_open_flag": "1"
-            }
+            token_info = self.token_manager.get_token(endpoint)
+            params = self._build_common_params(token_info)
 
             logger.info(f"[Dreamina] 发送多参考图生图请求, 数量: {len(image_uris)}")
-            response = self._send_request("POST", url, params=params, json=data)
+            response = self._send_request("POST", url, token_info=token_info, params=params, json=data)
             # 清理临时文件
             for p in image_paths:
                 try:
@@ -1314,17 +1318,11 @@ class ApiClient:
     def _get_generated_images(self, submit_id):
         """通过提交ID获取生成的图片(文生图)，使用最新API格式"""
         try:
-            url = f"{self.base_url}/mweb/v1/get_history_by_ids"
+            endpoint = "/mweb/v1/get_history_by_ids"
+            url = f"{self.base_url}{endpoint}"
             
-            # 使用最新的API参数格式
-            params = {
-                "aid": self.aid,
-                "device_platform": "web",
-                "region": "US",
-                "da_version": "3.2.8",
-                "web_version": "6.6.0",
-                "aigc_features": "app_lip_sync"
-            }
+            token_info = self.token_manager.get_token(endpoint)
+            params = self._build_common_params(token_info, {"web_id": self.token_manager.get_web_id()})
             
             # 使用最新的请求数据格式 - 使用submit_id查询
             data = {
@@ -1333,7 +1331,7 @@ class ApiClient:
             
             logger.debug(f"[Dreamina] 🔍 查询生成结果: submit_id={submit_id}")
             
-            result = self._send_request("POST", url, params=params, json=data)
+            result = self._send_request("POST", url, token_info=token_info, params=params, json=data)
             
             if not result or result.get("ret") != "0":
                 logger.error(f"[Dreamina] ❌ 获取生成状态失败")
@@ -1424,14 +1422,11 @@ class ApiClient:
             list: 图片URL列表
         """
         try:
-            url = f"{self.base_url}/mweb/v1/get_history_by_ids"
+            endpoint = "/mweb/v1/get_history_by_ids"
+            url = f"{self.base_url}{endpoint}"
             
-            params = {
-                "aid": self.aid,
-                "device_platform": "web",
-                "region": "US",
-                "web_id": self.token_manager.get_web_id()
-            }
+            token_info = self.token_manager.get_token(endpoint)
+            params = self._build_common_params(token_info, {"web_id": self.token_manager.get_web_id()})
             
             # 使用与成功的curl请求一致的参数结构
             data = {
@@ -1451,7 +1446,7 @@ class ApiClient:
             }
 
             
-            result = self._send_request("POST", url, params=params, json=data)
+            result = self._send_request("POST", url, token_info=token_info, params=params, json=data)
             
             if not result or result.get("ret") != "0":
                 logger.error(f"[Dreamina] 获取生成状态失败: {result}")
@@ -1560,15 +1555,12 @@ class ApiClient:
     def _get_queue_info_from_response(self, history_id):
         """从API响应中获取排队信息"""
         try:
-            url = f"{self.base_url}/mweb/v1/get_history_by_ids"
-            
-            params = {
-                "aid": self.aid,
-                "device_platform": "web",
-                "region": "US",
-                "web_id": self.token_manager.get_web_id()
-            }
-            
+            endpoint = "/mweb/v1/get_history_by_ids"
+            url = f"{self.base_url}{endpoint}"
+
+            token_info = self.token_manager.get_token(endpoint)
+            params = self._build_common_params(token_info, {"web_id": self.token_manager.get_web_id()})
+
             data = {
                 "history_ids": [history_id],
                 "image_info": {
@@ -1582,16 +1574,16 @@ class ApiClient:
                 },
                 "http_common_info": {"aid": self.aid}
             }
-            
-            result = self._send_request("POST", url, params=params, json=data)
-            
+
+            result = self._send_request("POST", url, token_info=token_info, params=params, json=data)
+
             if result and result.get('ret') == '0':
                 history_data = result.get('data', {}).get(history_id, {})
                 queue_info = history_data.get('queue_info', {})
                 if queue_info:
                     return queue_info
                 return None
-                
+
         except Exception as e:
             logger.error(f"[Dreamina] Error getting queue info: {e}")
             return None
@@ -1618,7 +1610,7 @@ class ApiClient:
             
             if queue_status == 1:  # 正在排队
                 if queue_idx > 0 and queue_length > 0:
-                    return f"📊 总队列长度：{queue_length}人\n🔄 您的位置：第{queue_idx}位\n⏰ 预计等待时间：{time_str}\n\n图片正在排队生成中，请耐心等待..."
+                    return f"📊 总队列长度：{queue_length}人\n🔄 您的位置：第{queue_idx}位⏰ 预计等待时间：{time_str}\n图片正在排队生成中，请耐心等待..."
                 else:
                     return f"🔄 图片生成任务已提交，预计等待时间：{time_str}"
             else:
