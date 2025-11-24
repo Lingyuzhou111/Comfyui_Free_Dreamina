@@ -1,7 +1,6 @@
 {
     "description": "Dreamina AI ComfyUI插件配置文件",
-    "version": "2.0.0",
-    
+    "version": "2.5.0",    
     "accounts": [
         {
             "sessionid": "",
@@ -11,8 +10,7 @@
             "sessionid": "",
             "description": "账号2"
         }
-    ],
-    
+    ],    
     "api": {
         "base_urls": {
             "mweb_api": "https://mweb-api-sg.capcut.com",
@@ -21,7 +19,7 @@
         "endpoints": {
             "generate": "/mweb/v1/aigc_draft/generate",
             "query_result": "/mweb/v1/get_history_by_ids",
-            "user_credit": "/commerce/v1/benefits/user_credit", 
+            "user_credit": "/commerce/v1/benefits/user_credit",
             "credit_history": "/commerce/v1/benefits/user_credit_history",
             "credit_receive": "/commerce/v1/benefits/credit_receive"
         },
@@ -29,21 +27,19 @@
             "aid": "513641",
             "device_platform": "web",
             "region": "US",
-            "da_version": "3.2.8",
-            "web_version": "6.6.0",
+            "da_version": "3.3.3",
+            "web_version": "7.5.0",
             "aigc_features": "app_lip_sync"
         }
     },
-    
     "timeout": {
         "base_timeout": 30,
-        "max_wait_time": 180,
+        "max_wait_time": 300,
         "check_interval": 10,
         "max_retries": 3,
-        "generation_timeout": 180,
+        "generation_timeout": 300,
         "query_timeout": 30
     },
-    
     "credit": {
         "enable_history": false,
         "history_count": 20,
@@ -51,92 +47,224 @@
         "min_credit_threshold": 10,
         "show_expiring_alerts": true
     },
-    
     "params": {
         "1k_ratios": {
-            "1:1": {"width": 1328, "height": 1328},
-            "2:3": {"width": 1056, "height": 1584},
-            "3:4": {"width": 1104, "height": 1472},
-            "4:3": {"width": 1472, "height": 1104},
-            "3:2": {"width": 1584, "height": 1056},
-            "16:9": {"width": 1664, "height": 936},
-            "9:16": {"width": 936, "height": 1664}
+            "1:1": {
+                "width": 1328,
+                "height": 1328
+            },
+            "2:3": {
+                "width": 1056,
+                "height": 1584
+            },
+            "3:4": {
+                "width": 1104,
+                "height": 1472
+            },
+            "4:3": {
+                "width": 1472,
+                "height": 1104
+            },
+            "3:2": {
+                "width": 1584,
+                "height": 1056
+            },
+            "16:9": {
+                "width": 1664,
+                "height": 936
+            },
+            "9:16": {
+                "width": 936,
+                "height": 1664
+            }
         },
         "2k_ratios": {
-            "1:1": {"width": 2048, "height": 2048},
-            "2:3": {"width": 1664, "height": 2496},
-            "3:4": {"width": 1728, "height": 2304},
-            "4:3": {"width": 2304, "height": 1728},
-            "3:2": {"width": 2496, "height": 1664},
-            "16:9": {"width": 2560, "height": 1440},
-            "9:16": {"width": 1440, "height": 2560}
+            "1:1": {
+                "width": 2048,
+                "height": 2048
+            },
+            "2:3": {
+                "width": 1664,
+                "height": 2496
+            },
+            "3:4": {
+                "width": 1728,
+                "height": 2304
+            },
+            "4:3": {
+                "width": 2304,
+                "height": 1728
+            },
+            "3:2": {
+                "width": 2496,
+                "height": 1664
+            },
+            "16:9": {
+                "width": 2560,
+                "height": 1440
+            },
+            "9:16": {
+                "width": 1440,
+                "height": 2560
+            }
         },
         "4k_ratios": {
-            "1:1": {"width": 4096, "height": 4096},
-            "2:3": {"width": 3328, "height": 4992},
-            "3:4": {"width": 3520, "height": 4693},
-            "4:3": {"width": 4693, "height": 3520},
-            "3:2": {"width": 4992, "height": 3328},
-            "16:9": {"width": 5404, "height": 3040},
-            "9:16": {"width": 3040, "height": 5404}
+            "1:1": {
+                "width": 4096,
+                "height": 4096
+            },
+            "2:3": {
+                "width": 3328,
+                "height": 4992
+            },
+            "3:4": {
+                "width": 3520,
+                "height": 4693
+            },
+            "4:3": {
+                "width": 4693,
+                "height": 3520
+            },
+            "3:2": {
+                "width": 4992,
+                "height": 3328
+            },
+            "16:9": {
+                "width": 5404,
+                "height": 3040
+            },
+            "9:16": {
+                "width": 3040,
+                "height": 5404
+            }
         },
         "default_ratio": "1:1",
         "models": {
+            "NanoBananaPro": {
+                "name": "谷歌NanoBananaPro",
+                "model_req_key": "dreamina_image_lib_1",
+                "description": "影视质感，文字更准，直出2k高清图",
+                "features": [
+                    "新模型",
+                    "默认场景",
+                    "人脸交换",
+                    "背景绘画",
+                    "文本到图像生成",
+                    "ETTA",
+                    "角色生成"
+                ],
+                "cost_per_generation": 2
+            },
             "NanoBanana": {
                 "name": "谷歌NanoBanana",
                 "model_req_key": "external_model_gemini_flash_image_v25",
                 "description": "影视质感，文字更准，直出2k高清图",
-                "features": ["新模型", "默认场景", "人脸交换", "背景绘画", "文本到图像生成", "ETTA", "角色生成"],
+                "features": [
+                    "新模型",
+                    "默认场景",
+                    "人脸交换",
+                    "背景绘画",
+                    "文本到图像生成",
+                    "ETTA",
+                    "角色生成"
+                ],
                 "cost_per_generation": 2
             },
             "4.0": {
                 "name": "图片 4.0",
                 "model_req_key": "high_aes_general_v40",
                 "description": "影视质感，文字更准，直出2k高清图",
-                "features": ["新模型", "默认场景", "人脸交换", "背景绘画", "文本到图像生成", "ETTA", "角色生成"],
+                "features": [
+                    "新模型",
+                    "默认场景",
+                    "人脸交换",
+                    "背景绘画",
+                    "文本到图像生成",
+                    "ETTA",
+                    "角色生成"
+                ],
                 "cost_per_generation": 2
             },
             "3.1": {
                 "name": "图片 3.1",
                 "model_req_key": "high_aes_general_v30l_art:general_v3.0_18b",
                 "description": "影视质感，文字更准，直出2k高清图",
-                "features": ["新模型", "默认场景", "人脸交换", "背景绘画", "文本到图像生成", "ETTA", "角色生成"],
+                "features": [
+                    "新模型",
+                    "默认场景",
+                    "人脸交换",
+                    "背景绘画",
+                    "文本到图像生成",
+                    "ETTA",
+                    "角色生成"
+                ],
                 "cost_per_generation": 2
             },
             "3.0": {
                 "name": "图片 3.0",
                 "model_req_key": "high_aes_general_v30l:general_v3.0_18b",
                 "description": "影视质感，文字更准，直出2k高清图",
-                "features": ["新模型", "默认场景", "人脸交换", "背景绘画", "文本到图像生成", "ETTA", "角色生成"],
+                "features": [
+                    "新模型",
+                    "默认场景",
+                    "人脸交换",
+                    "背景绘画",
+                    "文本到图像生成",
+                    "ETTA",
+                    "角色生成"
+                ],
                 "cost_per_generation": 2
             },
             "2.1": {
                 "name": "图片 2.1",
                 "model_req_key": "high_aes_general_v21_L:general_v2.1_L",
                 "description": "稳定的结构和更强的影视质感，支持生成中、英文文字",
-                "features": ["默认场景", "人脸交换", "背景绘画", "文本到图像生成", "ETTA", "角色生成"],
+                "features": [
+                    "默认场景",
+                    "人脸交换",
+                    "背景绘画",
+                    "文本到图像生成",
+                    "ETTA",
+                    "角色生成"
+                ],
                 "cost_per_generation": 2
             },
             "2.0p": {
                 "name": "图片 2.0 Pro",
                 "model_req_key": "high_aes_general_v20_L:general_v2.0_L",
                 "description": "大幅提升了多样性和真实的照片质感，开启创新与设计的视觉梦境",
-                "features": ["默认场景", "文本到图像生成", "人脸交换", "背景绘画", "限时折扣", "字节编辑", "风格参考"]
+                "features": [
+                    "默认场景",
+                    "文本到图像生成",
+                    "人脸交换",
+                    "背景绘画",
+                    "限时折扣",
+                    "字节编辑",
+                    "风格参考"
+                ]
             },
             "1.4": {
                 "name": "图片 1.4",
                 "model_req_key": "high_aes_general_v14:general_v1.4",
                 "description": "更精准的描述词响应和多样的风格组合，模型极具想象力！",
-                "features": ["默认场景", "文本到图像生成", "人脸交换", "背景绘画", "Canny边缘检测", "深度图", "姿态估计", "风格参考", "IP保持"]
+                "features": [
+                    "默认场景",
+                    "文本到图像生成",
+                    "人脸交换",
+                    "背景绘画",
+                    "Canny边缘检测",
+                    "深度图",
+                    "姿态估计",
+                    "风格参考",
+                    "IP保持"
+                ]
             }
         },
         "default_model": "3.0"
     },
-    
     "storage": {
         "retention_days": 7
     },
-    
     "ui": {
         "category": "Dreamina AI",
         "show_advanced_options": true,
@@ -144,12 +272,9 @@
         "show_credit_info": true,
         "show_cost_estimation": true
     },
-    
     "logging": {
         "level": "INFO",
         "enable_api_debug": true,
         "max_log_lines": 1000
     }
-
 }
-
