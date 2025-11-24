@@ -214,21 +214,24 @@ class TokenManager:
             if not account.get('web_id'):
                 account['web_id'] = web_id
             
+            # 生成ttwid (如果需要更真实的模拟)
+            ttwid = f"1|{secrets.token_urlsafe(32)}|{timestamp}|{hashlib.sha256(str(timestamp).encode()).hexdigest()}"
+            
             # 构建cookie部分
             cookie_parts = [
-                f"sessionid={sessionid}",
-                f"sessionid_ss={sessionid}",
-                f"_tea_web_id={web_id}",
-                f"web_id={web_id}",
-                f"_v2_spipe_web_id={web_id}",
+                f"store-country-code-src=uid",
                 f"uid_tt={self.user_id}",
                 f"uid_tt_ss={self.user_id}",
                 f"sid_tt={sessionid}",
-                f"sid_guard={sessionid}%7C{timestamp}%7C5184000%7C{expire_date}",
-                f"ssid_ucp_v1=1.0.0-{hashlib.md5((sessionid + str(timestamp)).encode()).hexdigest()}",
-                f"sid_ucp_v1=1.0.0-{hashlib.md5((sessionid + str(timestamp)).encode()).hexdigest()}",
-                "store-region=cn-gd",
-                "store-region-src=uid",
+                f"sessionid={sessionid}",
+                f"sessionid_ss={sessionid}",
+                f"store-country-code=us",
+                f"store-idc=useast5",
+                f"cc-target-idc=useast5",
+                f"sid_ucp_v1=1.0.1-{hashlib.md5((sessionid + str(timestamp)).encode()).hexdigest()}",
+                f"ssid_ucp_v1=1.0.1-{hashlib.md5((sessionid + str(timestamp)).encode()).hexdigest()}",
+                f"sid_guard={sessionid}%7C{timestamp}%7C5183999%7CWed%2C+21-Jan-2026+09%3A31%3A19+GMT",
+                f"ttwid={ttwid}",
                 "is_staff_user=false"
             ]
             
@@ -238,9 +241,11 @@ class TokenManager:
             logger.error(f"[Dreamina] Error generating cookie: {str(e)}")
             return ""
 
+
     def get_credit(self):
         """获取积分信息 - 更新为最新API格式"""
-        url = "https://commerce-api-sg.capcut.com/commerce/v1/benefits/user_credit"
+        # 使用最新的API域名
+        url = "https://commerce.us.capcut.com/commerce/v1/benefits/user_credit"
         
         token_info = self.get_token("/commerce/v1/benefits/user_credit")
         if not token_info:
@@ -250,7 +255,6 @@ class TokenManager:
         headers = {
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-            'Connection': 'keep-alive',
             'Content-Type': 'application/json',
             'cookie': token_info["cookie"],
             'Origin': 'https://dreamina.capcut.com',
@@ -258,18 +262,24 @@ class TokenManager:
             'Sec-Fetch-Dest': 'empty',
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-site',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
             'appid': '513641',
             'appvr': '5.8.0',
             'device-time': token_info["device_time"],
             'lan': 'EN',
             'pf': '7',
-            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Microsoft Edge";v="138"',
+            'cache-control': 'no-cache',  # 新增
+            'pragma': 'no-cache',  # 新增
+            'priority': 'u=1, i',  # 新增
+            'sec-ch-ua': '"Microsoft Edge";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Windows"',
             'sign': token_info["sign"],
             'sign-ver': '1'
         }
+    
+    # 其余代码保持不变...
+
         
         try:
             logger.info("[Dreamina] 🔍 正在获取积分信息...")
@@ -369,7 +379,8 @@ class TokenManager:
         
     def get_credit_history(self, count=20, cursor="0"):
         """获取积分历史记录 - 新增功能"""
-        url = "https://commerce-api-sg.capcut.com/commerce/v1/benefits/user_credit_history"
+        # 使用最新的API域名
+        url = "https://commerce.us.capcut.com/commerce/v1/benefits/user_credit_history"
         
         token_info = self.get_token("/commerce/v1/benefits/user_credit_history")
         if not token_info:
@@ -379,7 +390,6 @@ class TokenManager:
         headers = {
             'Accept': 'application/json, text/plain, */*',
             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
-            'Connection': 'keep-alive',
             'Content-Type': 'application/json',
             'cookie': token_info["cookie"],
             'Origin': 'https://dreamina.capcut.com',
@@ -387,13 +397,16 @@ class TokenManager:
             'Sec-Fetch-Dest': 'empty',
             'Sec-Fetch-Mode': 'cors',
             'Sec-Fetch-Site': 'same-site',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
             'appid': '513641',
             'appvr': '5.8.0',
             'device-time': token_info["device_time"],
             'lan': 'EN',
             'pf': '7',
-            'sec-ch-ua': '"Not)A;Brand";v="8", "Chromium";v="138", "Microsoft Edge";v="138"',
+            'cache-control': 'no-cache',  # 新增
+            'pragma': 'no-cache',  # 新增
+            'priority': 'u=1, i',  # 新增
+            'sec-ch-ua': '"Microsoft Edge";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Windows"',
             'sign': token_info["sign"],
