@@ -649,7 +649,7 @@ class ApiClient:
             canonical_headers = (
                 f'host:{upload_domain}\n'
                 f'x-amz-date:{amz_date}\n'
-                f'x-amz-security-token:{upload_token.get("session_token", "")}\n'
+                f"x-amz-security-token:{upload_token.get('session_token', '')}\n"
             )
             signed_headers = 'host;x-amz-date;x-amz-security-token'
             
@@ -755,7 +755,7 @@ class ApiClient:
             canonical_headers = (
                 f'x-amz-content-sha256:{content_sha256}\n'
                 f'x-amz-date:{amz_date}\n'
-                f'x-amz-security-token:{upload_token.get('session_token', '')}\n'
+                f"x-amz-security-token:{upload_token.get('session_token', '')}\n"
             )
             canonical_request = f"POST\n{canonical_uri}\n{canonical_querystring}\n{canonical_headers}\n{signed_headers}\n{content_sha256}"
             
@@ -1168,18 +1168,20 @@ class ApiClient:
             logger.info(f"[Dreamina] 📋 图生图使用模型: {model} -> {model_req_key}")
 
             # 组装 ability 的 image_list 与 image_uri_list
-            image_list = [{
-                "type": "image",
-                "id": str(uuid.uuid4()),
-                "source_from": "upload",
-                "platform_type": 1,
-                "name": "",
-                "image_uri": uri,
-                "width": 0,
-                "height": 0,
-                "format": "",
-                "uri": uri
-            } for uri in image_uris]
+            image_list = []
+            for uri in image_uris:
+                image_list.append({
+                    "type": "image",
+                    "id": str(uuid.uuid4()),
+                    "source_from": "upload",
+                    "platform_type": 1,
+                    "name": "",
+                    "image_uri": uri,
+                    "width": 0,
+                    "height": 0,
+                    "format": "",
+                    "uri": uri
+                })
 
             submit_id = str(uuid.uuid4())
             draft_id = str(uuid.uuid4())
